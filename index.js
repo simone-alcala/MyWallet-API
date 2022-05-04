@@ -29,11 +29,15 @@ const options = {
   abortEarly:   false, 
   allowUnknown: true, 
   stripUnknown: true,
-  convert     : false,
+  convert     : false
 }
 
 const sanitize = (text) => {
-  return stripHtml(text).result;
+  if (text !== undefined) {
+    text.trim();
+    return stripHtml(text).result;
+  }
+  return text;
 }
 
 app.post('/sign-up',async(req,res) => { 
@@ -45,14 +49,16 @@ app.post('/sign-up',async(req,res) => {
     const name      = sanitize(user.name);
     const email     = sanitize(user.email);
     const password  = sanitize(user.password);
+    const repeat_password  = sanitize(user.repeat_password);
 
     const schema = joi.object({
-      name:     joi.string().required().trim(),
-      email:    joi.string().email().required().trim(),
-      password: joi.string().required().trim()
-    });
+      name:     joi.string().trim().required(),
+      email:    joi.string().trim().email().required(),
+      password: joi.string().required(),
+      repeat_password: joi.ref('password')
+    }) .with('password', 'repeat_password');;
     
-    const validation = schema.validate({name,email,password},options);
+    const validation = schema.validate({name,email,password,repeat_password},options);
     
     if (validation.error) 
       return res.status(422).send(validation.error.details.map(detail => detail.message));
@@ -71,7 +77,8 @@ app.post('/sign-up',async(req,res) => {
     return res.sendStatus(201);
 
   } catch (e) {
-    return res.status(500).send(e);
+    console.log(e);
+    return res.sendStatus(500);
   }
 
 });
@@ -105,7 +112,8 @@ app.post('/sign-in',async(req,res) => {
     return res.status(200).send({token: registeredUser.password});
 
   } catch (e) {
-    return res.status(500).send(e);
+    console.log(e);
+    return res.sendStatus(500);
   }
 
 });
@@ -151,21 +159,23 @@ app.post('/statement',async(req,res) => {
       description, 
       value, 
       type, 
-      date: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+      createDate: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+      updateDate: dayjs().format('YYYY-MM-DD HH:mm:ss'),
       user: registeredUser.email
     });
 
     return res.sendStatus(201);
 
   } catch (e) {
-    return res.status(500).send(e.message);
+    console.log(e);
+    return res.sendStatus(500);
   }
 });
 
 app.get('/statement',async(req,res) => {
   
   try {
-
+    
     const token = req.headers.token;
     
     const schema = joi.object({
@@ -184,12 +194,15 @@ app.get('/statement',async(req,res) => {
        
     const statements = await db.collection('statements').find({user: registeredUser.email}).toArray();
 
+    statements.reverse();
+
     // const teste2 = dayjs(teste).format('DD/MM/YYYY')
 
     return res.status(200).send(statements);
 
   } catch (e) {
-    return res.status(500).send(e.message);
+    console.log(e);
+    return res.sendStatus(500);
   }
 
 });
@@ -254,12 +267,17 @@ app.put('/statement/:id',async(req,res) => {
       return res.status(401).send('Conflict on statement type');
     
     await db.collection('statements').updateOne( 
-      {_id: new ObjectId(id)} , { $set: { description, value }} ); 
+      {_id: new ObjectId(id)} , { 
+        $set: { 
+          description, 
+          value, 
+          updateDate: dayjs().format('YYYY-MM-DD HH:mm:ss') }}); 
 
     return res.sendStatus(200);
 
   } catch (e) {
-    return res.status(500).send(e.message);
+    console.log(e);
+    return res.sendStatus(500);
   }
 
 });
@@ -314,7 +332,8 @@ app.delete('/statement/:id',async(req,res) => {
     }
 
   } catch (e) {
-    return res.status(500).send(e.message);
+    console.log(e);
+    return res.sendStatus(500);
   }
 
 });
@@ -352,7 +371,8 @@ app.get('/balance',async(req,res) => {
     return res.status(200).send({ balance: balance });
 
   } catch (e) {
-    return res.status(500).send(e.message);
+    console.log(e);
+    return res.sendStatus(500);
   }
 
 });
