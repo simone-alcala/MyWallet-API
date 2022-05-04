@@ -33,7 +33,7 @@ const options = {
 }
 
 const sanitize = (text) => {
-  if (text !== undefined) {
+  if (text !== undefined && text !== null) {
     text.trim();
     return stripHtml(text).result;
   }
@@ -87,7 +87,7 @@ app.post('/sign-in',async(req,res) => {
 
   try {
 
-    const user = req.headers;
+    const user = req.body;
     
     const email     = sanitize(user.email);
     const password  = sanitize(user.password);
@@ -104,12 +104,10 @@ app.post('/sign-in',async(req,res) => {
     
     const registeredUser = await db.collection('users').findOne({email});  
 
-    const validatePassword = bcrypt.compareSync(password, registeredUser.password);
-
-    if (!registeredUser || !validatePassword)
+    if (!registeredUser || !bcrypt.compareSync(password, registeredUser.password))
       return res.status(401).send('Invalid User and/or Password');
     
-    return res.status(200).send({token: registeredUser.password});
+    return res.status(200).send({token: registeredUser.password, name: registeredUser.name});
 
   } catch (e) {
     console.log(e);
