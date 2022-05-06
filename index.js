@@ -194,9 +194,56 @@ app.get('/statement',async(req,res) => {
 
     statements.reverse();
 
-    // const teste2 = dayjs(teste).format('DD/MM/YYYY')
-
     return res.status(200).send(statements);
+
+  } catch (e) {
+    console.log(e);
+    return res.sendStatus(500);
+  }
+
+});
+
+app.get('/statement/:id',async(req,res) => {
+  
+  try {
+    
+    const idParam   = req.params;
+    const token     = req.headers.token;
+
+    const id        = sanitize(idParam.id);
+
+    const schemaId = joi.object({
+      id: joi.string().required().trim()
+    });
+
+    const validationId = schemaId.validate({id},options);
+
+    if (validationId.error) 
+      return res.status(422).send(validationId.error.details.map(detail => detail.message));
+    
+    const schema = joi.object({
+      token: joi.string().required().trim()
+    });
+    
+    const validation = schema.validate({token},options);
+    
+    if (validation.error) 
+      return res.status(422).send(validation.error.details.map(detail => detail.message));
+   
+    const registeredUser = await db.collection('users').findOne({password: token});  
+
+    if (!registeredUser)
+      return res.status(404).send('User not found');
+       
+    const statement = await db.collection('statements').findOne({_id: new ObjectId (id)});
+
+    if (!statement)
+      return res.status(404).send(`Statement ${id} not found`);
+
+    if (statement.user !== registeredUser.email)
+      return res.status(409).send('Unauthorized');
+
+    return res.status(200).send(statement);
 
   } catch (e) {
     console.log(e);
