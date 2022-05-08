@@ -22,7 +22,9 @@ export async function validateSession (req,res,next) {
 
     delete registeredUser.password;
 
-    return res.locals.registeredUser = registeredUser;
+    res.locals.registeredUser = registeredUser;
+
+    next();
     
   } catch (e) {
 
@@ -30,10 +32,6 @@ export async function validateSession (req,res,next) {
 
     return res.sendStatus(500);
 
-  } finally {
-
-    next();
-    
-  }
+  } 
   
 }
