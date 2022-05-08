@@ -17,5 +17,5 @@ app.use(statementsRouter);
 
 
 app.listen(process.env.PORT, () => 
-  console.log(chalk.bold.green('Server running on port 5000'))
+  console.log(chalk.bold.green('Server running on port ' + process.env.PORT))
 );
